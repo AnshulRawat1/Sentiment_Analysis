@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Engine - Comparative Dashboard</title>
+    <meta name="description" content="A premium side-by-side comparative dashboard for sentiment analysis using VADER and CardiffNLP RoBERTa deep learning models.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar: History -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <h2>Analysis History</h2>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="no-history">
+                    <p>No recent analyses. Try running some text!</p>
+                </div>
+            </div>
+            <button class="clear-history-btn" id="clearHistoryBtn">
+                <i class="fa-solid fa-trash-can"></i> Clear History
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="logo-area">
+                    <div class="logo-glow"></div>
+                    <i class="fa-solid fa-brain logo-icon"></i>
+                    <h1>Sentiment<span>Engine</span></h1>
+                </div>
+                <p class="subtitle">Side-by-side Comparative Sentiment Analysis Dashboard</p>
+            </header>
+
+            <!-- Status Indicator Bar -->
+            <div class="status-bar" id="statusBar">
+                <div class="status-item">
+                    <span class="status-label">API Server:</span>
+                    <span class="status-badge" id="apiStatus"><span class="dot pulse-blue"></span>Connecting...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">VADER Lexicon:</span>
+                    <span class="status-badge" id="vaderStatus"><span class="dot"></span>Unknown</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">RoBERTa Model:</span>
+                    <span class="status-badge" id="robertaStatus"><span class="dot"></span>Unknown</span>
+                </div>
+            </div>
+
+            <!-- Input Section -->
+            <section class="input-section glass-card">
+                <div class="input-header">
+                    <h3>Enter Text for Sentiment Analysis</h3>
+                    <button class="sample-btn" id="sampleBtn">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Insert Sample
+                    </button>
+                </div>
+                <div class="textarea-container">
+                    <textarea id="textInput" placeholder="Type or paste review, feedback, or text here to run comparative analysis..." maxlength="1000"></textarea>
+                    <button class="clear-input-btn" id="clearInputBtn" title="Clear text">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="input-footer">
+                    <span class="char-count" id="charCount">0 / 1000 characters</span>
+                    <button class="analyze-btn" id="analyzeBtn">
+                        <span>Analyze Sentiment</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div class="loading-state hidden" id="loadingState">
+                <div class="spinner">
+                    <div class="double-bounce1"></div>
+                    <div class="double-bounce2"></div>
+                </div>
+                <p>Analyzing semantic layers and computing sentiment probabilities...</p>
+            </div>
+
+            <!-- Results Section -->
+            <section class="results-section hidden" id="resultsSection">
+                <div class="verdict-banner glass-card" id="verdictBanner">
+                    <div class="verdict-icon">
+                        <i class="fa-solid fa-scale-balanced" id="verdictIcon"></i>
+                    </div>
+                    <div class="verdict-details">
+                        <h4 id="verdictTitle">Models Consensus</h4>
+                        <p id="verdictText">Both models agree on the sentiment polarity of this text.</p>
+                    </div>
+                </div>
+
+                <div class="models-grid">
+                    <!-- VADER Card -->
+                    <div class="model-card glass-card" id="vaderCard">
+                        <div class="card-header-glow bg-blue"></div>
+                        <div class="model-meta">
+                            <span class="model-type-chip">Lexicon-Based</span>
+                            <h2>NLTK VADER</h2>
+                            <p class="model-desc">Rule-based valence dictionary approach. Excellent for social media slang and emojis.</p>
+                        </div>
+                        
+                        <div class="sentiment-output">
+                            <div class="sentiment-badge" id="vaderSentimentBadge">
+                                <span id="vaderSentimentLabel">POSITIVE</span>
+                            </div>
+                            <div class="compound-score">
+                                <span class="score-label">Compound Score</span>
+                                <span class="score-val" id="vaderCompoundVal">+0.85</span>
+                                <div class="compound-bar-container">
+                                    <div class="compound-bar" id="vaderCompoundBar" style="width: 85%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="scores-breakdown">
+                            <h3>Probability Breakdown</h3>
+                            <!-- Positive Bar -->
+                            <div class="score-row">
+                                <div class="score-row-header">
+                                    <span class="label"><i class="fa-solid fa-face-smile color-pos"></i> Positive</span>
+                                    <span class="percentage" id="vaderPosVal">85%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill bg-pos" id="vaderPosBar" style="width: 85%"></div>
+                                </div>
+                            </div>
+                            <!-- Neutral Bar -->
+                            <div class="score-row">
+                                <div class="score-row-header">
+                                    <span class="label"><i class="fa-solid fa-face-meh color-neu"></i> Neutral</span>
+                                    <span class="percentage" id="vaderNeuVal">10%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill bg-neu" id="vaderNeuBar" style="width: 10%"></div>
+                                </div>
+                            </div>
+                            <!-- Negative Bar -->
+                            <div class="score-row">
+                                <div class="score-row-header">
+                                    <span class="label"><i class="fa-solid fa-face-frown color-neg"></i> Negative</span>
+                                    <span class="percentage" id="vaderNegVal">5%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill bg-neg" id="vaderNegBar" style="width: 5%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RoBERTa Card -->
+                    <div class="model-card glass-card" id="robertaCard">
+                        <div class="card-header-glow bg-purple"></div>
+                        <div class="model-meta">
+                            <span class="model-type-chip">Transformer DL</span>
+                            <h2>CardiffNLP RoBERTa</h2>
+                            <p class="model-desc">Deep Learning Transformer model pretrained on 58M+ tweets. Sensitive to context, irony, and complex syntax.</p>
+                        </div>
+
+                        <!-- Graceful Fallback Overlay / Warning -->
+                        <div class="fallback-overlay hidden" id="robertaFallbackOverlay">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <h3>RoBERTa Offline</h3>
+                            <p>The backend failed to load the deep learning pipeline (requires torch and transformers packages). Install them to enable side-by-side comparative analysis.</p>
+                        </div>
+                        
+                        <div class="sentiment-output" id="robertaOutputContent">
+                            <div class="sentiment-badge" id="robertaSentimentBadge">
+                                <span id="robertaSentimentLabel">POSITIVE</span>
+                            </div>
+                            <div class="confidence-score">
+                                <span class="score-label">Confidence Score</span>
+                                <span class="score-val" id="robertaConfidenceVal">94.2%</span>
+                            </div>
+                        </div>
+
+                        <div class="scores-breakdown" id="robertaBreakdownContent">
+                            <h3>Probability Breakdown</h3>
+                            <!-- Positive Bar -->
+                            <div class="score-row">
+                                <div class="score-row-header">
+                                    <span class="label"><i class="fa-solid fa-face-smile color-pos"></i> Positive</span>
+                                    <span class="percentage" id="robertaPosVal">94.2%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill bg-pos" id="robertaPosBar" style="width: 94.2%"></div>
+                                </div>
+                            </div>
+                            <!-- Neutral Bar -->
+                            <div class="score-row">
+                                <div class="score-row-header">
+                                    <span class="label"><i class="fa-solid fa-face-meh color-neu"></i> Neutral</span>
+                                    <span class="percentage" id="robertaNeuVal">4.5%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill bg-neu" id="robertaNeuBar" style="width: 4.5%"></div>
+                                </div>
+                            </div>
+                            <!-- Negative Bar -->
+                            <div class="score-row">
+                                <div class="score-row-header">
+                                    <span class="label"><i class="fa-solid fa-face-frown color-neg"></i> Negative</span>
+                                    <span class="percentage" id="robertaNegVal">1.3%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill bg-neg" id="robertaNegBar" style="width: 1.3%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Summary / Explanation Details -->
+                <div class="info-details-box glass-card">
+                    <h3><i class="fa-solid fa-circle-info"></i> How to interpret this comparison</h3>
+                    <div class="info-grid">
+                        <div>
+                            <h4>Lexicon vs Deep Learning</h4>
+                            <p><strong>NLTK VADER</strong> calculates sentiment by looking up words in a hand-curated vocabulary (lexicon) and adding their intensity ratings. It works well with exclamation marks, capitalization, and emoji ratings but lacks deep context understanding.</p>
+                        </div>
+                        <div>
+                            <h4>Contextual Awareness</h4>
+                            <p><strong>RoBERTa</strong> uses multi-head self-attention mechanisms to analyze relationships between words. This lets it detect sarcasm, double-negatives, and overall document semantic tone that simple dictionary lookups miss.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
