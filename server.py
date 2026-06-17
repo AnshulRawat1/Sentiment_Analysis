@@ -14,25 +14,60 @@ except Exception as e:
 from nltk.sentiment import SentimentIntensityAnalyzer
 sia = SentimentIntensityAnalyzer()
 
-# Try loading transformers (RoBERTa)
+# Hugging Face Inference API configuration
+import json
+import time
+import urllib.request
+import urllib.error
+
 MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
-tokenizer = None
-model = None
-roberta_available = False
+HF_API_URL = f"https://api-inference.huggingface.co/models/{MODEL}"
+HF_API_TOKEN = os.environ.get("HF_API_TOKEN")
+
+roberta_available = True
 roberta_error = None
 
-try:
-    from transformers import AutoTokenizer, AutoModelForSequenceClassification
-    from scipy.special import softmax
-    import torch
-    print("Loading CardiffNLP RoBERTa model...")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL)
-    model = AutoModelForSequenceClassification.from_pretrained(MODEL)
-    roberta_available = True
-    print("RoBERTa model loaded successfully!")
-except Exception as e:
-    roberta_error = str(e)
-    print(f"Warning: CardiffNLP RoBERTa model not loaded. Error: {e}")
+if not HF_API_TOKEN:
+    print("Warning: HF_API_TOKEN environment variable is not set. Hugging Face Inference API calls may fail or be rate-limited.")
+
+def query_hf_api(text: str, max_retries=3, delay=5):
+    payload = {"inputs": text}
+    headers = {"Content-Type": "application/json"}
+    if HF_API_TOKEN:
+        headers["Authorization"] = f"Bearer {HF_API_TOKEN}"
+        
+    for attempt in range(max_retries):
+        try:
+            req = urllib.request.Request(
+                HF_API_URL,
+                data=json.dumps(payload).encode("utf-8"),
+                headers=headers
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                result = json.loads(response.read().decode("utf-8"))
+                
+                # Check for model loading error
+                if isinstance(result, dict) and "error" in result and "currently loading" in result["error"]:
+                    est_time = result.get("estimated_time", delay)
+                    print(f"Model is loading, waiting {est_time}s (attempt {attempt + 1}/{max_retries})...")
+                    time.sleep(min(est_time, 10))  # sleep up to 10s
+                    continue
+                return result
+        except urllib.error.HTTPError as e:
+            try:
+                err_data = json.loads(e.read().decode("utf-8"))
+                if isinstance(err_data, dict) and "error" in err_data and "currently loading" in err_data["error"]:
+                    est_time = err_data.get("estimated_time", delay)
+                    print(f"Model is loading (HTTP {e.code}), waiting {est_time}s (attempt {attempt + 1}/{max_retries})...")
+                    time.sleep(min(est_time, 10))
+                    continue
+                raise Exception(err_data.get("error", str(e)))
+            except Exception:
+                raise Exception(f"HTTP Error {e.code}: {e.reason}")
+        except Exception as e:
+            raise e
+            
+    raise Exception("Model is still loading. Please try again in a few moments.")
 
 app = FastAPI(title="Sentiment Analysis API")
 
@@ -71,16 +106,27 @@ def analyze_text(req: AnalyzeRequest):
     roberta_scores = None
     if roberta_available:
         try:
-            encoded_text = tokenizer(text, return_tensors='pt')
-            with torch.no_grad():
-                output = model(**encoded_text)
-            scores = output[0][0].detach().numpy()
-            scores = softmax(scores)
-            roberta_scores = {
-                "neg": float(scores[0]),
-                "neu": float(scores[1]),
-                "pos": float(scores[2])
-            }
+            result = query_hf_api(text)
+            
+            # Map the API response format back to neg, neu, pos
+            scores_dict = {"neg": 0.0, "neu": 0.0, "pos": 0.0}
+            
+            if isinstance(result, list) and len(result) > 0:
+                first_el = result[0]
+                items = first_el if isinstance(first_el, list) else result
+                
+                for item in items:
+                    if isinstance(item, dict) and "label" in item and "score" in item:
+                        label = str(item["label"]).lower()
+                        score = float(item["score"])
+                        if label in ["label_0", "negative", "neg"]:
+                            scores_dict["neg"] = score
+                        elif label in ["label_1", "neutral", "neu"]:
+                            scores_dict["neu"] = score
+                        elif label in ["label_2", "positive", "pos"]:
+                            scores_dict["pos"] = score
+                            
+                roberta_scores = scores_dict
         except Exception as e:
             print(f"RoBERTa analysis failed: {e}")
             
