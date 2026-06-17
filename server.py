@@ -1,4 +1,26 @@
 import os
+import socket
+
+# Force IPv4 DNS resolution to prevent "[Errno -5] No address associated with hostname" 
+# on IPv4-only host networks (like Render containers) which fail on IPv6 (AAAA) resolution.
+_orig_getaddrinfo = socket.getaddrinfo
+def _ipv4_only_getaddrinfo(*args, **kwargs):
+    if 'family' in kwargs:
+        if kwargs['family'] == 0:
+            kwargs['family'] = socket.AF_INET
+    elif len(args) >= 3:
+        args = list(args)
+        if args[2] == 0:
+            args[2] = socket.AF_INET
+    else:
+        args = list(args)
+        while len(args) < 3:
+            args.append(0)
+        args[2] = socket.AF_INET
+    return _orig_getaddrinfo(*args, **kwargs)
+
+socket.getaddrinfo = _ipv4_only_getaddrinfo
+
 import nltk
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
