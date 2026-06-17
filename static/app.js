@@ -227,6 +227,16 @@ document.addEventListener('DOMContentLoaded', () => {
             robertaFallbackOverlay.classList.remove('hidden');
             robertaOutputContent.classList.add('hidden');
             robertaBreakdownContent.classList.add('hidden');
+            
+            // Show detailed error if available
+            const errorPara = robertaFallbackOverlay.querySelector('p');
+            if (errorPara) {
+                if (data.roberta_error) {
+                    errorPara.innerHTML = `Failed to connect to the Hugging Face Inference API.<br><br><span style="color: #ff6b6b; font-family: monospace; font-size: 0.9rem; background: rgba(255, 107, 107, 0.1); padding: 8px 12px; border-radius: 4px; border: 1px solid rgba(255, 107, 107, 0.2); display: block; word-break: break-all; margin-top: 10px; text-align: left;">Error: ${escapeHtml(data.roberta_error)}</span>`;
+                } else {
+                    errorPara.textContent = 'Failed to connect to the Hugging Face Inference API. Please ensure the server has internet access, or check your HF_API_TOKEN environment variable configuration.';
+                }
+            }
         }
 
         // 3. Verdict Banner Render
