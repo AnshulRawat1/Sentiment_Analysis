@@ -44,13 +44,13 @@ import urllib.error
 
 MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
 HF_API_URL = f"https://api-inference.huggingface.co/models/{MODEL}"
-HF_API_TOKEN = os.environ.get("HF_API_TOKEN")
+HF_API_TOKEN = os.environ.get("HF_API_TOKEN") or os.environ.get("HF_TOKEN")
 
 roberta_available = True
 roberta_error = None
 
 if not HF_API_TOKEN:
-    print("Warning: HF_API_TOKEN environment variable is not set. Hugging Face Inference API calls may fail or be rate-limited.")
+    print("Warning: Neither HF_API_TOKEN nor HF_TOKEN environment variable is set. Hugging Face Inference API calls may fail or be rate-limited.")
 
 def query_hf_api(text: str, max_retries=3, delay=5):
     payload = {"inputs": text}
@@ -126,6 +126,7 @@ def analyze_text(req: AnalyzeRequest):
         
     # 2. RoBERTa sentiment analysis
     roberta_scores = None
+    roberta_err_msg = None
     if roberta_available:
         try:
             result = query_hf_api(text)
@@ -150,13 +151,17 @@ def analyze_text(req: AnalyzeRequest):
                             
                 roberta_scores = scores_dict
         except Exception as e:
+            roberta_err_msg = str(e)
             print(f"RoBERTa analysis failed: {e}")
+            global roberta_error
+            roberta_error = str(e)
             
     return {
         "text": text,
         "vader": vader_scores,
         "roberta": roberta_scores,
-        "roberta_available": roberta_available and roberta_scores is not None
+        "roberta_available": roberta_available and roberta_scores is not None,
+        "roberta_error": roberta_err_msg
     }
 
 # Mount static folder
