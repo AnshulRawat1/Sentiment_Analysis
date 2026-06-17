@@ -43,7 +43,7 @@ import urllib.request
 import urllib.error
 
 MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
-HF_API_URL = f"https://api-inference.huggingface.co/models/{MODEL}"
+HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{MODEL}"
 HF_API_TOKEN = os.environ.get("HF_API_TOKEN") or os.environ.get("HF_TOKEN")
 
 roberta_available = True
